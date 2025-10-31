@@ -20,6 +20,7 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an emerging st
 ## Prerequisites
 
 - Python 3.13+
+- Conda (Anaconda or Miniconda)
 - Adzuna API credentials (get them from [https://developer.adzuna.com/](https://developer.adzuna.com/))
 
 ## Installation
@@ -28,26 +29,34 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an emerging st
 
 2. **Create and activate conda environment**
 
+   **Option A: Using environment.yml (Recommended)**
+
+   ```bash
+   # Create conda environment from environment.yml
+   conda env create -f environment.yml
+
+   # Activate the environment
+   conda activate adzuna-mcp
+   ```
+
+   Or use the Makefile:
+
+   ```bash
+   make setup-env
+   conda activate adzuna-mcp
+   ```
+
+   **Option B: Manual setup**
+
    ```bash
    # Create conda environment with Python 3.13
    conda create -n adzuna-mcp python=3.13 -y
 
    # Activate the environment
    conda activate adzuna-mcp
-   ```
 
-3. **Install dependencies**
-
-   Using pip:
-
-   ```bash
+   # Install dependencies
    pip install -r requirements.txt
-   ```
-
-   Or using uv (recommended):
-
-   ```bash
-   uv pip install -r requirements.txt
    ```
 
 4. **Set up environment variables**
@@ -75,10 +84,10 @@ Start the MCP server:
 python server.py
 ```
 
-The server will start on `http://localhost:8000` with:
+The server will start on `http://localhost:7000` with:
 
-- **API Documentation**: http://localhost:8000/docs
-- **MCP Endpoint**: http://localhost:8000/mcp
+- **API Documentation**: http://localhost:7000/docs
+- **MCP Endpoint**: http://localhost:7000/mcp
 
 ### Testing with MCP Inspector
 
@@ -92,7 +101,7 @@ You can test your MCP server using the official MCP Inspector:
    npx @modelcontextprotocol/inspector
    ```
 
-3. Connect to your MCP server at `http://127.0.0.1:8000/mcp`
+3. Connect to your MCP server at `http://127.0.0.1:7000/mcp`
 
 4. Navigate to the **Tools** section and click **List Tools** to see all available endpoints
 
@@ -106,7 +115,7 @@ To connect this MCP server to an AI assistant (like Claude Desktop), add the fol
 {
   "mcpServers": {
     "adzuna-jobs": {
-      "url": "http://localhost:8000/mcp"
+      "url": "http://localhost:7000/mcp"
     }
   }
 }
@@ -195,7 +204,7 @@ You can also use the FastAPI endpoints directly without MCP:
 - `GET /jobs/histogram` - Get salary histogram
 - `GET /health` - Health check
 
-Visit `http://localhost:8000/docs` for interactive API documentation.
+Visit `http://localhost:7000/docs` for interactive API documentation.
 
 ## Project Structure
 
@@ -271,6 +280,195 @@ Common Adzuna country codes:
 
 [See full list](https://developer.adzuna.com/docs/api)
 
+## Testing
+
+### Running Tests
+
+This project includes comprehensive tests with 95%+ code coverage.
+
+Install development dependencies:
+
+```bash
+pip install pytest pytest-cov pytest-asyncio requests-mock httpx pytest-mock
+```
+
+Or use the Makefile:
+
+```bash
+make install-dev
+```
+
+Run all tests:
+
+```bash
+pytest tests/ -v
+```
+
+Or:
+
+```bash
+make test
+```
+
+Run with coverage report (95% threshold):
+
+```bash
+pytest tests/ -v --cov=server --cov-report=html --cov-report=term-missing --cov-branch --cov-fail-under=95
+```
+
+Or:
+
+```bash
+make test-cov
+```
+
+Run specific test categories:
+
+```bash
+# Unit tests only
+pytest tests/ -v -m "unit"
+make test-unit
+
+# Integration tests only
+pytest tests/ -v -m "integration"
+make test-integration
+
+# MCP protocol tests only
+pytest tests/ -v -m "mcp"
+make test-mcp
+```
+
+View coverage report:
+
+```bash
+# Open htmlcov/index.html in your browser after running test-cov
+```
+
+### Test Structure
+
+- `tests/conftest.py` - Shared fixtures and test configuration
+- `tests/test_endpoints.py` - FastAPI endpoint tests (40+ tests)
+- `tests/test_mcp_tools.py` - MCP protocol compliance tests (30+ tests)
+- `tests/test_integration.py` - End-to-end integration tests (15+ tests)
+
+## Deployment
+
+### Google Cloud Run Deployment
+
+This MCP server can be deployed to Google Cloud Run with free tier support (2M requests/month, 180K vCPU-seconds, 360K GiB-seconds).
+
+**See [DEPLOYMENT.md](DEPLOYMENT.md) for complete step-by-step deployment instructions.**
+
+#### Quick Deploy
+
+```powershell
+# Set your GCP project ID
+$env:PROJECT_ID = "your-gcp-project-id"
+
+# Build and deploy
+gcloud builds submit --tag gcr.io/$env:PROJECT_ID/adzuna-mcp-server
+gcloud run deploy adzuna-mcp-server `
+    --image gcr.io/$env:PROJECT_ID/adzuna-mcp-server `
+    --region us-central1 `
+    --platform managed `
+    --allow-unauthenticated `
+    --min-instances 0 `
+    --update-secrets ADZUNA_APP_ID=adzuna-app-id:latest,ADZUNA_APP_KEY=adzuna-app-key:latest
+```
+
+Or use the Makefile:
+
+```bash
+make gcp-deploy
+```
+
+#### Deployment Features
+
+- ✅ Free tier optimized (us-central1 region)
+- ✅ Min instances: 0 (no idle cost, accepts cold starts ~1-3s)
+- ✅ Public access (no authentication required)
+- ✅ Secret Manager integration for credentials
+- ✅ Auto-scaling (0-10 instances)
+- ✅ 512MB memory, 1 vCPU
+- ✅ 300s timeout
+
+### Local Docker Testing
+
+Build and test locally before deploying:
+
+```bash
+# Build image
+docker build -t adzuna-mcp-server .
+make docker-build
+
+# Run locally
+docker run -p 7000:7000 `
+    -e ADZUNA_APP_ID=your_id `
+    -e ADZUNA_APP_KEY=your_key `
+    -e PORT=7000 `
+    adzuna-mcp-server
+
+make docker-run
+
+# Test
+curl http://localhost:7000/health
+```
+
+### Connecting to Deployed Service
+
+Add to your Claude Desktop MCP configuration:
+
+**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "adzuna-jobs": {
+      "url": "https://your-service-url.run.app/mcp"
+    }
+  }
+}
+```
+
+Replace `your-service-url.run.app` with your actual Cloud Run service URL.
+
+## Development Commands
+
+This project includes a Makefile with convenient commands:
+
+```bash
+# Environment setup
+make setup-env        # Create conda environment from environment.yml
+
+# Install dependencies
+make install          # Production dependencies only
+make install-dev      # Include test dependencies
+
+# Testing
+make test             # Run all tests
+make test-cov         # Run tests with 95% coverage threshold
+make test-unit        # Run unit tests only
+make test-integration # Run integration tests only
+make test-mcp         # Run MCP protocol tests only
+
+# Development
+make dev              # Start dev server with auto-reload
+
+# Docker
+make docker-build     # Build Docker image
+make docker-run       # Run Docker container locally
+make docker-test      # Run with test credentials
+
+# Deployment
+make gcp-deploy       # Deploy to Google Cloud Run
+
+# Cleanup
+make clean            # Remove test artifacts and cache
+
+# Help
+make help             # Show all available commands
+```
+
 ## Troubleshooting
 
 ### API Credentials Not Working
@@ -290,6 +488,25 @@ Common Adzuna country codes:
 - Try broader search terms
 - Check if the country code is correct
 - Verify the API credentials are valid
+
+### Tests Failing
+
+- Ensure all dev dependencies are installed (`make install-dev`)
+- Check that environment variables are mocked properly
+- Run individual test files to isolate issues: `pytest tests/test_endpoints.py -v`
+
+### Docker Build Issues
+
+- Ensure Docker is running
+- Check that Dockerfile and .dockerignore are present
+- Verify Python dependencies are correct in requirements.txt
+
+### Cloud Run Deployment Issues
+
+- Ensure gcloud CLI is installed and authenticated
+- Verify GCP project is set: `gcloud config get-value project`
+- Check that required APIs are enabled (Run, Build, Secret Manager)
+- See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed troubleshooting
 
 ## Resources
 

@@ -272,6 +272,16 @@ async def get_salary_histogram(
 
 
 @app.get(
+    "/",
+    include_in_schema=False,
+)
+async def root():
+    """Redirect root to API documentation."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/docs")
+
+
+@app.get(
     "/health",
     operation_id="health_check",
     tags=["system"],
@@ -301,14 +311,17 @@ mcp.mount_http()
 if __name__ == "__main__":
     import uvicorn
     
+    # Cloud Run provides PORT environment variable
+    port = int(os.getenv("PORT", 7000))
+    
     print("🚀 Starting Adzuna Job Search MCP Server...")
-    print(f"   API docs: http://localhost:8000/docs")
-    print(f"   MCP endpoint: http://localhost:8000/mcp")
+    print(f"   API docs: http://localhost:{port}/docs")
+    print(f"   MCP endpoint: http://localhost:{port}/mcp")
     print()
     
     if not ADZUNA_APP_ID or not ADZUNA_APP_KEY:
         print("⚠️  Warning: Adzuna credentials not configured!")
-        print("   Please set ADZUNA_APP_ID and ADZUNA_APP_KEY in your .env file")
+        print("   Please set ADZUNA_APP_ID and ADZUNA_APP_KEY in your environment")
         print()
     
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=port)
