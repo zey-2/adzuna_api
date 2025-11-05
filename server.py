@@ -129,6 +129,82 @@ async def search_jobs(
         None,
         description="Maximum salary filter"
     ),
+    what_and: Optional[str] = Query(
+        None,
+        description="Keywords to search for (all keywords must be found)"
+    ),
+    what_phrase: Optional[str] = Query(
+        None,
+        description="An entire phrase which must be found in the description or title"
+    ),
+    what_or: Optional[str] = Query(
+        None,
+        description="Keywords to search for (any keywords may be found, space separated)"
+    ),
+    what_exclude: Optional[str] = Query(
+        None,
+        description="Keywords to exclude from the search (space separated)"
+    ),
+    title_only: Optional[str] = Query(
+        None,
+        description="Keywords to find, but only in the title (space separated)"
+    ),
+    distance: Optional[int] = Query(
+        None,
+        description="Distance in kilometres from the centre of the 'where' location (defaults to 5km)"
+    ),
+    location0: Optional[str] = Query(
+        None,
+        description="Location field for structured location search (e.g., 'UK')"
+    ),
+    location1: Optional[str] = Query(
+        None,
+        description="Location field level 1 (e.g., 'South East England')"
+    ),
+    location2: Optional[str] = Query(
+        None,
+        description="Location field level 2 (e.g., 'Surrey')"
+    ),
+    location3: Optional[str] = Query(
+        None,
+        description="Location field level 3"
+    ),
+    location4: Optional[str] = Query(
+        None,
+        description="Location field level 4"
+    ),
+    location5: Optional[str] = Query(
+        None,
+        description="Location field level 5"
+    ),
+    location6: Optional[str] = Query(
+        None,
+        description="Location field level 6"
+    ),
+    location7: Optional[str] = Query(
+        None,
+        description="Location field level 7"
+    ),
+    max_days_old: Optional[int] = Query(
+        None,
+        description="The age of the oldest advertisement in days that will be returned"
+    ),
+    category: Optional[str] = Query(
+        None,
+        description="The category tag, as returned by the 'category' endpoint"
+    ),
+    sort_dir: Optional[str] = Query(
+        None,
+        description="The direction to order the search results ('up' or 'down')"
+    ),
+    salary_include_unknown: Optional[bool] = Query(
+        None,
+        description="If set to True, jobs without a known salary are returned"
+    ),
+    company: Optional[str] = Query(
+        None,
+        description="The canonical company name to filter by"
+    ),
 ) -> JobSearchResponse:
     """Search for jobs using the Adzuna API."""
     if not ADZUNA_APP_ID or not ADZUNA_APP_KEY:
@@ -166,6 +242,44 @@ async def search_jobs(
         params["salary_min"] = salary_min
     if salary_max is not None:
         params["salary_max"] = salary_max
+    if what_and:
+        params["what_and"] = what_and
+    if what_phrase:
+        params["what_phrase"] = what_phrase
+    if what_or:
+        params["what_or"] = what_or
+    if what_exclude:
+        params["what_exclude"] = what_exclude
+    if title_only:
+        params["title_only"] = title_only
+    if distance is not None:
+        params["distance"] = distance
+    if location0:
+        params["location0"] = location0
+    if location1:
+        params["location1"] = location1
+    if location2:
+        params["location2"] = location2
+    if location3:
+        params["location3"] = location3
+    if location4:
+        params["location4"] = location4
+    if location5:
+        params["location5"] = location5
+    if location6:
+        params["location6"] = location6
+    if location7:
+        params["location7"] = location7
+    if max_days_old is not None:
+        params["max_days_old"] = max_days_old
+    if category:
+        params["category"] = category
+    if sort_dir:
+        params["sort_dir"] = sort_dir
+    if salary_include_unknown is not None:
+        params["salary_include_unknown"] = 1 if salary_include_unknown else 0
+    if company:
+        params["company"] = company
     
     try:
         response = requests.get(endpoint, params=params, timeout=10)
@@ -176,6 +290,44 @@ async def search_jobs(
             count=data.get("count", 0),
             results=data.get("results", [])
         )
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error calling Adzuna API: {str(e)}"
+        )
+
+
+@app.get(
+    "/jobs/categories",
+    response_model=dict,
+    operation_id="get_categories",
+    tags=["jobs"],
+    summary="List available job categories",
+    description="Get a list of available job categories for a specific country"
+)
+async def get_categories(
+    country: str = Query(
+        "sg",
+        description="Country code (e.g., 'sg' for Singapore, 'us' for USA, 'gb' for UK)"
+    ),
+) -> dict[str, Any]:
+    """Get available job categories from Adzuna API."""
+    if not ADZUNA_APP_ID or not ADZUNA_APP_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="Adzuna API credentials not configured."
+        )
+    
+    endpoint = f"https://api.adzuna.com/v1/api/jobs/{country}/categories"
+    params = {
+        "app_id": ADZUNA_APP_ID,
+        "app_key": ADZUNA_APP_KEY,
+    }
+    
+    try:
+        response = requests.get(endpoint, params=params, timeout=10)
+        response.raise_for_status()
+        return response.json()
     except requests.exceptions.RequestException as e:
         raise HTTPException(
             status_code=500,
@@ -196,6 +348,46 @@ async def get_top_companies(
         "sg",
         description="Country code (e.g., 'sg' for Singapore, 'us' for USA)"
     ),
+    what: Optional[str] = Query(
+        None,
+        description="Keywords to search for (space separated)"
+    ),
+    location0: Optional[str] = Query(
+        None,
+        description="Location field for structured location search"
+    ),
+    location1: Optional[str] = Query(
+        None,
+        description="Location field level 1"
+    ),
+    location2: Optional[str] = Query(
+        None,
+        description="Location field level 2"
+    ),
+    location3: Optional[str] = Query(
+        None,
+        description="Location field level 3"
+    ),
+    location4: Optional[str] = Query(
+        None,
+        description="Location field level 4"
+    ),
+    location5: Optional[str] = Query(
+        None,
+        description="Location field level 5"
+    ),
+    location6: Optional[str] = Query(
+        None,
+        description="Location field level 6"
+    ),
+    location7: Optional[str] = Query(
+        None,
+        description="Location field level 7"
+    ),
+    category: Optional[str] = Query(
+        None,
+        description="The category tag, as returned by the 'category' endpoint"
+    ),
 ) -> dict[str, Any]:
     """Get top hiring companies from Adzuna API."""
     if not ADZUNA_APP_ID or not ADZUNA_APP_KEY:
@@ -205,10 +397,32 @@ async def get_top_companies(
         )
     
     endpoint = f"https://api.adzuna.com/v1/api/jobs/{country}/top_companies"
-    params = {
+    params: dict[str, Any] = {
         "app_id": ADZUNA_APP_ID,
         "app_key": ADZUNA_APP_KEY,
     }
+    
+    # Add optional parameters
+    if what:
+        params["what"] = what
+    if location0:
+        params["location0"] = location0
+    if location1:
+        params["location1"] = location1
+    if location2:
+        params["location2"] = location2
+    if location3:
+        params["location3"] = location3
+    if location4:
+        params["location4"] = location4
+    if location5:
+        params["location5"] = location5
+    if location6:
+        params["location6"] = location6
+    if location7:
+        params["location7"] = location7
+    if category:
+        params["category"] = category
     
     try:
         response = requests.get(endpoint, params=params, timeout=10)
@@ -230,17 +444,49 @@ async def get_top_companies(
     description="Get salary distribution histogram for job search results"
 )
 async def get_salary_histogram(
-    what: str = Query(
-        ...,
-        description="Keywords to search for (e.g., 'data scientist')"
-    ),
     country: str = Query(
         "sg",
         description="Country code (e.g., 'sg' for Singapore)"
     ),
-    where: Optional[str] = Query(
+    what: Optional[str] = Query(
         None,
-        description="Location to search in"
+        description="Keywords to search for (space separated)"
+    ),
+    location0: Optional[str] = Query(
+        None,
+        description="Location field for structured location search"
+    ),
+    location1: Optional[str] = Query(
+        None,
+        description="Location field level 1"
+    ),
+    location2: Optional[str] = Query(
+        None,
+        description="Location field level 2"
+    ),
+    location3: Optional[str] = Query(
+        None,
+        description="Location field level 3"
+    ),
+    location4: Optional[str] = Query(
+        None,
+        description="Location field level 4"
+    ),
+    location5: Optional[str] = Query(
+        None,
+        description="Location field level 5"
+    ),
+    location6: Optional[str] = Query(
+        None,
+        description="Location field level 6"
+    ),
+    location7: Optional[str] = Query(
+        None,
+        description="Location field level 7"
+    ),
+    category: Optional[str] = Query(
+        None,
+        description="The category tag, as returned by the 'category' endpoint"
     ),
 ) -> dict[str, Any]:
     """Get salary histogram for job search results."""
@@ -254,11 +500,256 @@ async def get_salary_histogram(
     params: dict[str, Any] = {
         "app_id": ADZUNA_APP_ID,
         "app_key": ADZUNA_APP_KEY,
-        "what": what,
     }
     
-    if where:
-        params["where"] = where
+    # Add optional parameters
+    if what:
+        params["what"] = what
+    if location0:
+        params["location0"] = location0
+    if location1:
+        params["location1"] = location1
+    if location2:
+        params["location2"] = location2
+    if location3:
+        params["location3"] = location3
+    if location4:
+        params["location4"] = location4
+    if location5:
+        params["location5"] = location5
+    if location6:
+        params["location6"] = location6
+    if location7:
+        params["location7"] = location7
+    if category:
+        params["category"] = category
+    
+    try:
+        response = requests.get(endpoint, params=params, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error calling Adzuna API: {str(e)}"
+        )
+
+
+@app.get(
+    "/jobs/geodata",
+    response_model=dict,
+    operation_id="get_geodata",
+    tags=["jobs"],
+    summary="Get salary data for locations",
+    description="Provides salary data for locations inside an area"
+)
+async def get_geodata(
+    country: str = Query(
+        "sg",
+        description="Country code (e.g., 'sg' for Singapore, 'us' for USA, 'gb' for UK)"
+    ),
+    location0: Optional[str] = Query(
+        None,
+        description="Location field for structured location search (e.g., 'UK')"
+    ),
+    location1: Optional[str] = Query(
+        None,
+        description="Location field level 1 (e.g., 'South East England')"
+    ),
+    location2: Optional[str] = Query(
+        None,
+        description="Location field level 2 (e.g., 'Surrey')"
+    ),
+    location3: Optional[str] = Query(
+        None,
+        description="Location field level 3"
+    ),
+    location4: Optional[str] = Query(
+        None,
+        description="Location field level 4"
+    ),
+    location5: Optional[str] = Query(
+        None,
+        description="Location field level 5"
+    ),
+    location6: Optional[str] = Query(
+        None,
+        description="Location field level 6"
+    ),
+    location7: Optional[str] = Query(
+        None,
+        description="Location field level 7"
+    ),
+    category: Optional[str] = Query(
+        None,
+        description="The category tag, as returned by the 'category' endpoint"
+    ),
+) -> dict[str, Any]:
+    """Get salary data for locations inside an area from Adzuna API."""
+    if not ADZUNA_APP_ID or not ADZUNA_APP_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="Adzuna API credentials not configured."
+        )
+    
+    endpoint = f"https://api.adzuna.com/v1/api/jobs/{country}/geodata"
+    params: dict[str, Any] = {
+        "app_id": ADZUNA_APP_ID,
+        "app_key": ADZUNA_APP_KEY,
+    }
+    
+    # Add optional parameters
+    if location0:
+        params["location0"] = location0
+    if location1:
+        params["location1"] = location1
+    if location2:
+        params["location2"] = location2
+    if location3:
+        params["location3"] = location3
+    if location4:
+        params["location4"] = location4
+    if location5:
+        params["location5"] = location5
+    if location6:
+        params["location6"] = location6
+    if location7:
+        params["location7"] = location7
+    if category:
+        params["category"] = category
+    
+    try:
+        response = requests.get(endpoint, params=params, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error calling Adzuna API: {str(e)}"
+        )
+
+
+@app.get(
+    "/jobs/history",
+    response_model=dict,
+    operation_id="get_salary_history",
+    tags=["jobs"],
+    summary="Get historical salary data",
+    description="Provides historical average salary data over time"
+)
+async def get_salary_history(
+    country: str = Query(
+        "sg",
+        description="Country code (e.g., 'sg' for Singapore, 'us' for USA, 'gb' for UK)"
+    ),
+    location0: Optional[str] = Query(
+        None,
+        description="Location field for structured location search"
+    ),
+    location1: Optional[str] = Query(
+        None,
+        description="Location field level 1"
+    ),
+    location2: Optional[str] = Query(
+        None,
+        description="Location field level 2"
+    ),
+    location3: Optional[str] = Query(
+        None,
+        description="Location field level 3"
+    ),
+    location4: Optional[str] = Query(
+        None,
+        description="Location field level 4"
+    ),
+    location5: Optional[str] = Query(
+        None,
+        description="Location field level 5"
+    ),
+    location6: Optional[str] = Query(
+        None,
+        description="Location field level 6"
+    ),
+    location7: Optional[str] = Query(
+        None,
+        description="Location field level 7"
+    ),
+    category: Optional[str] = Query(
+        None,
+        description="The category tag, as returned by the 'category' endpoint"
+    ),
+    months: Optional[int] = Query(
+        None,
+        description="The number of months back for which to retrieve data"
+    ),
+) -> dict[str, Any]:
+    """Get historical average salary data from Adzuna API."""
+    if not ADZUNA_APP_ID or not ADZUNA_APP_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="Adzuna API credentials not configured."
+        )
+    
+    endpoint = f"https://api.adzuna.com/v1/api/jobs/{country}/history"
+    params: dict[str, Any] = {
+        "app_id": ADZUNA_APP_ID,
+        "app_key": ADZUNA_APP_KEY,
+    }
+    
+    # Add optional parameters
+    if location0:
+        params["location0"] = location0
+    if location1:
+        params["location1"] = location1
+    if location2:
+        params["location2"] = location2
+    if location3:
+        params["location3"] = location3
+    if location4:
+        params["location4"] = location4
+    if location5:
+        params["location5"] = location5
+    if location6:
+        params["location6"] = location6
+    if location7:
+        params["location7"] = location7
+    if category:
+        params["category"] = category
+    if months is not None:
+        params["months"] = months
+    
+    try:
+        response = requests.get(endpoint, params=params, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error calling Adzuna API: {str(e)}"
+        )
+
+
+@app.get(
+    "/version",
+    response_model=dict,
+    operation_id="get_api_version",
+    tags=["system"],
+    summary="Get API version",
+    description="Returns the current version of the Adzuna API"
+)
+async def get_api_version() -> dict[str, Any]:
+    """Get the current version of the Adzuna API."""
+    if not ADZUNA_APP_ID or not ADZUNA_APP_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="Adzuna API credentials not configured."
+        )
+    
+    endpoint = "https://api.adzuna.com/v1/api/version"
+    params = {
+        "app_id": ADZUNA_APP_ID,
+        "app_key": ADZUNA_APP_KEY,
+    }
     
     try:
         response = requests.get(endpoint, params=params, timeout=10)
