@@ -23,7 +23,6 @@ RUN pip install --no-cache-dir --upgrade \
 
 # Copy application code
 COPY server.py /code/server.py
-COPY adzuna_example.py /code/adzuna_example.py
 COPY README.md /code/README.md
 
 # Create non-root user for security

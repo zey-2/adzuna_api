@@ -121,14 +121,6 @@ async def search_jobs(
         None,
         description="Filter for permanent positions only"
     ),
-    salary_min: Optional[int] = Query(
-        None,
-        description="Minimum salary filter"
-    ),
-    salary_max: Optional[int] = Query(
-        None,
-        description="Maximum salary filter"
-    ),
     what_and: Optional[str] = Query(
         None,
         description="Keywords to search for (all keywords must be found)"
@@ -238,10 +230,6 @@ async def search_jobs(
         params["contract"] = 1 if contract else 0
     if permanent is not None:
         params["permanent"] = 1 if permanent else 0
-    if salary_min is not None:
-        params["salary_min"] = salary_min
-    if salary_max is not None:
-        params["salary_max"] = salary_max
     if what_and:
         params["what_and"] = what_and
     if what_phrase:
