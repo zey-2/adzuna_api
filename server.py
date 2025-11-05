@@ -274,9 +274,14 @@ async def search_jobs(
         response.raise_for_status()
         data = response.json()
         
+        results = data.get("results", [])
+        for job in results:
+            job.pop('salary_min', None)
+            job.pop('salary_max', None)
+        
         return JobSearchResponse(
             count=data.get("count", 0),
-            results=data.get("results", [])
+            results=results
         )
     except requests.exceptions.RequestException as e:
         raise HTTPException(
