@@ -39,13 +39,6 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an emerging st
    conda activate adzuna-mcp
    ```
 
-   Or use the Makefile:
-
-   ```bash
-   make setup-env
-   conda activate adzuna-mcp
-   ```
-
    **Option B: Manual setup**
 
    ```bash
@@ -59,7 +52,7 @@ The [Model Context Protocol](https://modelcontextprotocol.io/) is an emerging st
    pip install -r requirements.txt
    ```
 
-4. **Set up environment variables**
+3. **Set up environment variables**
 
    Copy the example environment file:
 
@@ -138,7 +131,17 @@ Search for job listings with various filters.
 - `results_per_page` (default: 10, max: 50): Number of results per page
 - `sort_by` (optional): Sort order - "date", "salary", or "relevance"
 - `full_time`, `part_time`, `contract`, `permanent` (optional): Job type filters
-- `salary_min`, `salary_max` (optional): Salary range filters
+- `what_and` (optional): Keywords that must all be found
+- `what_phrase` (optional): An entire phrase that must be found
+- `what_or` (optional): Keywords where any may be found
+- `what_exclude` (optional): Keywords to exclude
+- `title_only` (optional): Keywords to find only in the title
+- `distance` (optional): Distance in km from the 'where' location
+- `max_days_old` (optional): Maximum age of the advertisement in days
+- `category` (optional): Category tag to filter by
+- `sort_dir` (optional): Sort direction ('up' or 'down')
+- `salary_include_unknown` (optional): Include jobs with unknown salaries
+- `company` (optional): Filter by a specific company name
 
 **Example:**
 
@@ -152,13 +155,32 @@ Search for job listings with various filters.
 }
 ```
 
-### 2. `get_top_companies`
+### 2. `get_categories`
+
+Get a list of available job categories for a specific country.
+
+**Parameters:**
+
+- `country` (default: "sg"): Country code
+
+**Example:**
+
+```python
+# Get all available job categories in Singapore
+{
+  "country": "sg"
+}
+```
+
+### 3. `get_top_companies`
 
 Get the top companies currently hiring in a specific country.
 
 **Parameters:**
 
 - `country` (default: "sg"): Country code
+- `what` (optional): Keywords to search for
+- `category` (optional): Category tag to filter by
 
 **Example:**
 
@@ -169,15 +191,16 @@ Get the top companies currently hiring in a specific country.
 }
 ```
 
-### 3. `get_salary_histogram`
+### 4. `get_salary_histogram`
 
 Get salary distribution histogram for job search results.
 
 **Parameters:**
 
-- `what` (required): Keywords to search for
 - `country` (default: "sg"): Country code
+- `what` (optional): Keywords to search for
 - `where` (optional): Location to search in
+- `category` (optional): Category tag to filter by
 
 **Example:**
 
@@ -189,7 +212,7 @@ Get salary distribution histogram for job search results.
 }
 ```
 
-### 4. `health_check`
+### 5. `health_check`
 
 Check if the API is running and properly configured.
 
@@ -200,6 +223,7 @@ Check if the API is running and properly configured.
 You can also use the FastAPI endpoints directly without MCP:
 
 - `GET /jobs/search` - Search for jobs
+- `GET /jobs/categories` - List available job categories
 - `GET /jobs/top-companies` - Get top hiring companies
 - `GET /jobs/histogram` - Get salary histogram
 - `GET /health` - Health check
@@ -294,20 +318,10 @@ pip install pytest pytest-cov pytest-asyncio requests-mock httpx pytest-mock
 
 Or use the Makefile:
 
-```bash
-make install-dev
-```
-
 Run all tests:
 
 ```bash
 pytest tests/ -v
-```
-
-Or:
-
-```bash
-make test
 ```
 
 Run with coverage report (95% threshold):
@@ -316,26 +330,17 @@ Run with coverage report (95% threshold):
 pytest tests/ -v --cov=server --cov-report=html --cov-report=term-missing --cov-branch --cov-fail-under=95
 ```
 
-Or:
-
-```bash
-make test-cov
-```
-
 Run specific test categories:
 
 ```bash
 # Unit tests only
 pytest tests/ -v -m "unit"
-make test-unit
 
 # Integration tests only
 pytest tests/ -v -m "integration"
-make test-integration
 
 # MCP protocol tests only
 pytest tests/ -v -m "mcp"
-make test-mcp
 ```
 
 View coverage report:
@@ -378,10 +383,6 @@ gcloud run deploy adzuna-mcp-server `
 
 Or use the Makefile:
 
-```bash
-make gcp-deploy
-```
-
 #### Deployment Features
 
 - ✅ Free tier optimized (us-central1 region)
@@ -399,7 +400,6 @@ Build and test locally before deploying:
 ```bash
 # Build image
 docker build -t adzuna-mcp-server .
-make docker-build
 
 # Run locally
 docker run -p 7000:7000 `
@@ -407,8 +407,6 @@ docker run -p 7000:7000 `
     -e ADZUNA_APP_KEY=your_key `
     -e PORT=7000 `
     adzuna-mcp-server
-
-make docker-run
 
 # Test
 curl http://localhost:7000/health
@@ -432,43 +430,6 @@ Add to your Claude Desktop MCP configuration:
 
 Replace `your-service-url.run.app` with your actual Cloud Run service URL.
 
-## Development Commands
-
-This project includes a Makefile with convenient commands:
-
-```bash
-# Environment setup
-make setup-env        # Create conda environment from environment.yml
-
-# Install dependencies
-make install          # Production dependencies only
-make install-dev      # Include test dependencies
-
-# Testing
-make test             # Run all tests
-make test-cov         # Run tests with 95% coverage threshold
-make test-unit        # Run unit tests only
-make test-integration # Run integration tests only
-make test-mcp         # Run MCP protocol tests only
-
-# Development
-make dev              # Start dev server with auto-reload
-
-# Docker
-make docker-build     # Build Docker image
-make docker-run       # Run Docker container locally
-make docker-test      # Run with test credentials
-
-# Deployment
-make gcp-deploy       # Deploy to Google Cloud Run
-
-# Cleanup
-make clean            # Remove test artifacts and cache
-
-# Help
-make help             # Show all available commands
-```
-
 ## Troubleshooting
 
 ### API Credentials Not Working
@@ -491,7 +452,7 @@ make help             # Show all available commands
 
 ### Tests Failing
 
-- Ensure all dev dependencies are installed (`make install-dev`)
+- Ensure all dev dependencies are installed (see "Running Tests" install step)
 - Check that environment variables are mocked properly
 - Run individual test files to isolate issues: `pytest tests/test_endpoints.py -v`
 
