@@ -28,6 +28,20 @@ def load_env(path: str = ".env") -> None:
             os.environ.setdefault(key.strip(), value.strip())
 
 
+def remove_class_fields(data: Any) -> Any:
+    """Recursively remove __CLASS__ fields from dictionaries and lists."""
+    if isinstance(data, dict):
+        return {
+            key: remove_class_fields(value)
+            for key, value in data.items()
+            if key != "__CLASS__"
+        }
+    elif isinstance(data, list):
+        return [remove_class_fields(item) for item in data]
+    else:
+        return data
+
+
 # Load environment variables
 load_env()
 
@@ -274,13 +288,16 @@ async def search_jobs(
         response.raise_for_status()
         data = response.json()
         
-        results = data.get("results", [])
+        # Clean the response data
+        cleaned_data = remove_class_fields(data)
+        
+        results = cleaned_data.get("results", [])
         for job in results:
             job.pop('salary_min', None)
             job.pop('salary_max', None)
         
         return JobSearchResponse(
-            count=data.get("count", 0),
+            count=cleaned_data.get("count", 0),
             results=results
         )
     except requests.exceptions.RequestException as e:
@@ -320,7 +337,8 @@ async def get_categories(
     try:
         response = requests.get(endpoint, params=params, timeout=10)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        return remove_class_fields(data)
     except requests.exceptions.RequestException as e:
         raise HTTPException(
             status_code=500,
@@ -420,7 +438,8 @@ async def get_top_companies(
     try:
         response = requests.get(endpoint, params=params, timeout=10)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        return remove_class_fields(data)
     except requests.exceptions.RequestException as e:
         raise HTTPException(
             status_code=500,
@@ -520,7 +539,8 @@ async def get_salary_histogram(
     try:
         response = requests.get(endpoint, params=params, timeout=10)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        return remove_class_fields(data)
     except requests.exceptions.RequestException as e:
         raise HTTPException(
             status_code=500,
@@ -614,7 +634,8 @@ async def get_geodata(
     try:
         response = requests.get(endpoint, params=params, timeout=10)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        return remove_class_fields(data)
     except requests.exceptions.RequestException as e:
         raise HTTPException(
             status_code=500,
@@ -714,7 +735,8 @@ async def get_salary_history(
     try:
         response = requests.get(endpoint, params=params, timeout=10)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        return remove_class_fields(data)
     except requests.exceptions.RequestException as e:
         raise HTTPException(
             status_code=500,
@@ -747,7 +769,8 @@ async def get_api_version() -> dict[str, Any]:
     try:
         response = requests.get(endpoint, params=params, timeout=10)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        return remove_class_fields(data)
     except requests.exceptions.RequestException as e:
         raise HTTPException(
             status_code=500,
@@ -786,6 +809,7 @@ mcp = FastApiMCP(
     app,
     name="Adzuna Job Search MCP",
     description="MCP server for searching and retrieving job listings from Adzuna API",
+    describe_full_response_schema=True,
 )
 
 # Mount the MCP server

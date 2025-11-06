@@ -4,14 +4,31 @@ A Model Context Protocol (MCP) server that exposes the [Adzuna Job Search API](h
 
 This project uses [fastapi_mcp](https://github.com/tadata-org/fastapi_mcp) to automatically convert FastAPI endpoints into MCP tools.
 
+## 🚀 Live Deployment
+
+**Production MCP Server:**
+
+```
+https://adzuna-mcp-server-236255620233.us-central1.run.app/mcp
+```
+
+**API Documentation:**
+
+```
+https://adzuna-mcp-server-236255620233.us-central1.run.app/docs
+```
+
 ## Features
 
 - 🔍 **Job Search**: Search for jobs with filters like location, salary, job type
 - 🏢 **Top Companies**: Get top hiring companies by country
 - 📊 **Salary Histogram**: View salary distributions for job searches
+- 🗺️ **Geodata**: Get salary data for different locations
+- 📈 **Historical Data**: View salary trends over time
 - 🤖 **AI-Ready**: Exposes all functionality as MCP tools for AI assistants
 - 📝 **Auto-Generated Documentation**: FastAPI provides interactive API docs
 - 🔒 **Environment-Based Configuration**: Secure credential management
+- ☁️ **Cloud Deployed**: Running on Google Cloud Run with auto-scaling
 
 ## What is MCP?
 
@@ -102,7 +119,23 @@ You can test your MCP server using the official MCP Inspector:
 
 ### Using with AI Assistants
 
-To connect this MCP server to an AI assistant (like Claude Desktop), add the following configuration to your MCP settings:
+#### Production Server (Cloud)
+
+To connect to the deployed MCP server:
+
+```json
+{
+  "mcpServers": {
+    "adzuna-jobs": {
+      "url": "https://adzuna-mcp-server-236255620233.us-central1.run.app/mcp"
+    }
+  }
+}
+```
+
+#### Local Development
+
+To connect to a local MCP server:
 
 ```json
 {
@@ -113,6 +146,25 @@ To connect this MCP server to an AI assistant (like Claude Desktop), add the fol
   }
 }
 ```
+
+## Deployment
+
+### Deploy to Google Cloud Run
+
+The easiest way to deploy is using the automated script:
+
+```powershell
+.\deploy.ps1
+```
+
+For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+The deployment includes:
+
+- Automated container building with Cloud Build
+- Secure secret management with Google Secret Manager
+- Auto-scaling from 0 to 10 instances
+- Free tier optimized configuration
 
 ## Available MCP Tools
 

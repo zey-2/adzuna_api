@@ -2,6 +2,22 @@
 
 This guide provides step-by-step instructions for deploying the Adzuna Job Search MCP Server to Google Cloud Run.
 
+## Quick Start
+
+The easiest way to deploy is using the automated deployment script:
+
+```powershell
+.\deploy.ps1
+```
+
+This script will:
+
+- Enable required GCP services
+- Check/create API secrets
+- Build the Docker container
+- Deploy to Cloud Run
+- Test the deployment
+
 ## Prerequisites
 
 Before deploying, ensure you have:
@@ -39,6 +55,7 @@ gcloud config set run/region us-central1
 ```
 
 **Free Tier Details:**
+
 - **Region:** All regions eligible, but `us-central1` uses Tier 1 pricing (lowest cost)
 - **Monthly Limits:** 2M requests, 180K vCPU-seconds, 360K GiB-seconds
 - **Network:** 1 GB outbound data from North America per month
@@ -107,7 +124,23 @@ curl -X POST http://localhost:7000/mcp `
 
 ## Deploy to Google Cloud Run
 
-### Method 1: Using Cloud Build (Recommended)
+### Using the Automated Script (Recommended)
+
+Run the deployment script:
+
+```powershell
+.\deploy.ps1
+```
+
+The script will guide you through:
+
+1. Enabling required GCP services
+2. Setting up API credentials as secrets
+3. Building the container image
+4. Deploying to Cloud Run
+5. Testing the deployment
+
+### Method 1: Using Cloud Build (Manual)
 
 ```powershell
 # Build container image using Cloud Build
@@ -125,7 +158,7 @@ gcloud run deploy adzuna-mcp-server `
     --cpu 1 `
     --timeout 300s `
     --concurrency 80 `
-    --update-secrets ADZUNA_APP_ID=adzuna-app-id:latest,ADZUNA_APP_KEY=adzuna-app-key:latest
+    --update-secrets "ADZUNA_APP_ID=adzuna-app-id:latest,ADZUNA_APP_KEY=adzuna-app-key:latest"
 ```
 
 ### Method 2: Using Local Docker Build
@@ -147,7 +180,7 @@ gcloud run deploy adzuna-mcp-server `
     --platform managed `
     --allow-unauthenticated `
     --min-instances 0 `
-    --update-secrets ADZUNA_APP_ID=adzuna-app-id:latest,ADZUNA_APP_KEY=adzuna-app-key:latest
+    --update-secrets "ADZUNA_APP_ID=adzuna-app-id:latest,ADZUNA_APP_KEY=adzuna-app-key:latest"
 ```
 
 ### Deployment Configuration Explained
@@ -188,36 +221,42 @@ curl -X POST $SERVICE_URL/mcp `
 Start-Process "$SERVICE_URL/docs"
 ```
 
-## Connect from Claude Desktop
-
-Add to your Claude Desktop MCP configuration:
-
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "adzuna-jobs": {
-      "url": "https://your-service-url/mcp"
-    }
-  }
-}
-```
-
-Replace `your-service-url` with your actual Cloud Run service URL.
-
 ## Update Deployment
 
 To update your deployed service with new code:
 
 ```powershell
-# Rebuild and redeploy
+# Use the automated script
+.\deploy.ps1
+
+# Or manually rebuild and redeploy
 gcloud builds submit --tag gcr.io/$PROJECT_ID/adzuna-mcp-server
 
 gcloud run deploy adzuna-mcp-server `
     --image gcr.io/$PROJECT_ID/adzuna-mcp-server `
     --region us-central1
 ```
+
+## Using the MCP Server
+
+### With MCP Clients
+
+Your MCP server is now available at:
+
+```
+https://adzuna-mcp-server-236255620233.us-central1.run.app/mcp
+```
+
+Configure your MCP client to use this URL to access the following tools:
+
+- `search_jobs` - Search for job listings
+- `get_categories` - List available job categories
+- `get_top_companies` - Get top hiring companies
+- `get_salary_histogram` - Get salary distribution
+- `get_geodata` - Get salary data for locations
+- `get_salary_history` - Get historical salary data
+- `get_api_version` - Get Adzuna API version
+- `health_check` - Check server health
 
 ## Monitoring and Logs
 
@@ -241,6 +280,7 @@ Start-Process "https://console.cloud.google.com/run"
 ```
 
 Key metrics to monitor:
+
 - **Request count** - Stay under 2M/month for free tier
 - **CPU utilization** - Monitor vCPU-seconds usage
 - **Memory utilization** - Monitor GiB-seconds usage
@@ -375,6 +415,7 @@ gcloud secrets delete adzuna-app-key
 ## Support
 
 For issues specific to:
+
 - **Adzuna API:** Contact Adzuna support or check their documentation
 - **Google Cloud Run:** Refer to GCP documentation or support
 - **MCP Protocol:** Check the MCP specification or fastapi-mcp repository
